@@ -1141,7 +1141,9 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
     /* CAL Create script source notes */
     ScriptNotes notes(cx, script, original_pc);
-    // notes.print();
+  #ifdef DEBUG_LOOP_PARALLEL
+    notes.print();
+  #endif /* DEBUG_LOOP_PARALLEL */
 
     /*
      * Pool of rooters for use in this interpreter frame. References to these
