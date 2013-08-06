@@ -1167,9 +1167,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
     /* CAL Create script source notes */
     ScriptNotes notes(cx, script, original_pc);
-  #ifdef DEBUG_LOOP_PARALLEL
-    notes.print();
-  #endif /* DEBUG_LOOP_PARALLEL */
+    // notes.print();
 
     /*
      * Pool of rooters for use in this interpreter frame. References to these
@@ -1300,6 +1298,44 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
         if (inloop && offset == loopdata.exit ){
             std::cout << "\nExiting loop\n";
             inloop = false;
+
+            indexList.pop_back();
+
+            int *index = (int *)malloc(sizeof(int) * indexList.size());
+            memcpy(index, &indexList[0], sizeof(int) * indexList.size());
+
+		  #ifdef DEBUG_LOOP_PARALLEL
+            printf("index = ");
+            for(int i=0; i<indexList.size(); i++) {
+            	printf("%d ", index[i]);
+            }
+            printf("\n");
+		  #endif /* DEBUG_LOOP_PARALLEL */
+
+            int nloop = indexList.size();
+            int nthread =  nloop/NUM_LOOP_PER_THREAD;
+
+            int startP, stopP, i;
+
+            for (i = 0; i < nthread; i++) {
+            	startP = i * NUM_LOOP_PER_THREAD;
+            	stopP = startP + NUM_LOOP_PER_THREAD;
+            	/*dprintf("Creating thread %d\n", counter);*/
+
+            	loop_threads.push(std::thread(ThreadInterpret, i, regs.pc, cx, &regs, offset,
+            			original_pc, loopdata.update, &rootValue0, &rootValue1,
+            			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
+            			index, startP, stopP, loopIndexID));//, read,wrote));
+            }
+
+            if (nloop % NUM_LOOP_PER_THREAD != 0) {
+            	startP = stopP;
+            	stopP = stopP + (nloop % NUM_LOOP_PER_THREAD);
+            	loop_threads.push(std::thread(ThreadInterpret, i, regs.pc, cx, &regs, offset,
+            	            			original_pc, loopdata.update, &rootValue0, &rootValue1,
+            	            			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
+            	            			index, startP, stopP, loopIndexID));//, read,wrote));
+            }
 
             while (!loop_threads.empty()){
             	std::cout << "\nWaiting on thread\n";
