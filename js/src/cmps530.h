@@ -69,7 +69,7 @@ class ScriptNotes {
         unsigned colspan = 0;
         unsigned lineno = script->lineno;
         jssrcnote *notes = script->notes();
-        unsigned switchTableEnd = 0, switchTableStart = 0;
+        //unsigned switchTableEnd = 0, switchTableStart = 0;
         // Main decoding loop.  Each iteration corresponds to decoding a 
         // single note.
         for (jssrcnote *sn = notes; !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
@@ -104,7 +104,7 @@ class ScriptNotes {
                 thisloop.looptype = JSLOOP_FOR;
                 thisloop.loophead = original_pc + offset + 6;
                 thisloop.loopentry = original_pc + offset + unsigned(js_GetSrcNoteOffset(sn,0)) + 1; //cond + 1
-                thisloop.update = original_pc + offset + unsigned(js_GetSrcNoteOffset(sn, 1));
+                thisloop.update = original_pc + offset + unsigned(js_GetSrcNoteOffset(sn, 1)) + 1;
                 thisloop.tail = original_pc + offset + unsigned(js_GetSrcNoteOffset(sn, 2));
                 thisloop.exit = thisloop.tail - original_pc + 6;
                 instr->loopdata = thisloop;
@@ -131,6 +131,8 @@ class ScriptNotes {
               case SRC_LABELBRACE:
               case SRC_BREAK2LABEL:
               case SRC_CONT2LABEL: {
+                /* Bank: will cauese warning but we are not sure about side
+                 * effects. */ 
                 uint32_t index = js_GetSrcNoteOffset(sn, 0);
                 JSAtom *atom = script->getAtom(index);
                 //Sprint(sp, " atom %u (", index);
@@ -143,11 +145,13 @@ class ScriptNotes {
                 break;
               }
               case SRC_FUNCDEF: {
+                /* Bank: will cauese warning but we are not sure about side
+                 * effects. */ 
                 uint32_t index = js_GetSrcNoteOffset(sn, 0);
                 JSObject *obj = script->getObject(index);
                 JSFunction *fun = obj->toFunction();
                 //JSString *str = JS_DecompileFunction(cx, fun, JS_DONT_PRETTY_PRINT);
-                JSAutoByteString bytes;
+                //JSAutoByteString bytes;
                 //if (!str || !bytes.encode(cx, str))
                 //    ReportException(cx);
                 //Sprint(sp, " function %u (%s)", index, !!bytes ? bytes.ptr() : "N/A");
@@ -194,11 +198,21 @@ class ScriptNotes {
                                                 it->second->pc, it->second->delta, 
                                                 js_SrcNoteSpec[it->second->type].name);
             if (it->second->type == SRC_FOR) {
-                printf(" head %d entry/cond %d update %d tail %d\n",
+                /*printf(" head %d entry/cond %d update %d tail %d\n",
                         int( it->second->loopdata.loophead - original_pc),
                         int( it->second->loopdata.loopentry - original_pc),
                         int( it->second->loopdata.update - original_pc),
-                        int( it->second->loopdata.tail - original_pc));
+                        int( it->second->loopdata.tail - original_pc)); */
+
+
+                printf(" head %p entry/cond %p update %p tail %p\n",
+                                        (void*)( it->second->loopdata.loophead),
+                                        (void*)( it->second->loopdata.loopentry),
+                                        (void*)( it->second->loopdata.update),
+                                        (void*)( it->second->loopdata.tail));
+
+
+
             } else { printf("\n"); }
         }
     }
