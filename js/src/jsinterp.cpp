@@ -1312,18 +1312,10 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
             int nloop = indexList.size();
             int nthread =  nloop/NUM_LOOP_PER_THREAD;
-            int absNThread = nloop % NUM_LOOP_PER_THREAD == 0 ? 
-                                 nthread : nthread+1;
             int startP = 0, stopP = 0, i = 0;
 
             int *index = (int *)malloc(sizeof(int) * indexList.size());
             memcpy(index, &indexList[0], sizeof(int) * indexList.size());
-            JSContext *cxs = (JSContext *)malloc(
-                              sizeof(JSContext) * absNThread);
-
-            for (i=0; i<absNThread; i++) {
-                memcpy(&(cxs[i]), &cx, sizeof(JSContext));
-            }
 
             for (i = 0; i < nthread; i++) {
 
@@ -1332,7 +1324,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
             	/*dprintf("Creating thread %d\n", counter);*/
 
             	loop_threads.push(std::thread(ThreadInterpret, 
-                        i, loopdata.loophead, &(cxs[i]), &regs, offset,
+                        i, loopdata.loophead, cx, &regs, offset,
             			original_pc, loopdata.update, &rootValue0, &rootValue1,
             			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
             			index, startP, stopP, loopIndexID));//, read,wrote));
@@ -1346,7 +1338,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
             	startP = stopP;
             	stopP = stopP + (nloop % NUM_LOOP_PER_THREAD);
             	loop_threads.push(std::thread(ThreadInterpret, 
-                                        i, loopdata.loophead, &(cxs[i]), &regs, offset,
+                                        i, loopdata.loophead, cx, &regs, offset,
             	            			original_pc, loopdata.update, &rootValue0, &rootValue1,
             	            			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
             	            			index, startP, stopP, loopIndexID));//, read,wrote));
@@ -1361,7 +1353,6 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
             }
 
             free(index);
-            free(cxs);
         }
 #endif //LOOP_PARALLEL
 

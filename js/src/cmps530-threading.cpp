@@ -52,10 +52,14 @@ using namespace std;
  * change the accesses accordingly.
  */
 JS_NEVER_INLINE void
-ThreadInterpret(int id, jsbytecode* start_pc, JSContext *cx, FrameRegs * orig_regs, int offset, jsbytecode *original_pc, jsbytecode *stop_pc, 
+ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs * orig_regs, int offset, jsbytecode *original_pc, jsbytecode *stop_pc, 
         RootedValue *rootValue0, RootedValue *rootValue1, RootedObject *rootObject0, RootedObject *rootObject1, RootedObject *rootObject2, RootedId *rootId0,
         Rooted<JSScript*> * script, int* index, int startP, int stopP, jsid loopIndexID)//,
 {
+    JSContext *cx = (JSContext *)malloc(sizeof(JSContext));
+    memcpy(cx, original_cx, sizeof(JSContext));
+
+
 	//return;
 	//Rooted<JSScript*> script(cx);
 	//SET_SCRIPT(regs.fp()->script());
@@ -526,5 +530,5 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *cx, FrameRegs * orig_re
 
 	} //end of big for loop
 
-
+    free(cx);
 } // end of function ThreadInterpret
