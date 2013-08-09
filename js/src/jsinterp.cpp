@@ -1317,6 +1317,15 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
             int *index = (int *)malloc(sizeof(int) * indexList.size());
             memcpy(index, &indexList[0], sizeof(int) * indexList.size());
 
+            std::thread testThread = std::thread(ThreadInterpret,
+                                    i, loopdata.loophead, cx, &regs, offset,
+                        			original_pc, loopdata.update, &rootValue0, &rootValue1,
+                        			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
+                        			index, startP, nloop, loopIndexID, true);//, read,wrote));
+
+             testThread.join();
+             printf("End of the test thread\n");
+
             for (i = 0; i < nthread; i++) {
 
             	startP = i * NUM_LOOP_PER_THREAD;
@@ -1327,7 +1336,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                         i, loopdata.loophead, cx, &regs, offset,
             			original_pc, loopdata.update, &rootValue0, &rootValue1,
             			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-            			index, startP, stopP, loopIndexID));//, read,wrote));
+            			index, startP, stopP, loopIndexID, true));//, read,wrote));
 
 			  #ifdef DEBUG_LOOP_PARALLEL
             	printf("[%d] spawn thread, startP=%d, stopP=%d\n", i, startP, stopP);
@@ -1341,7 +1350,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                                         i, loopdata.loophead, cx, &regs, offset,
             	            			original_pc, loopdata.update, &rootValue0, &rootValue1,
             	            			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-            	            			index, startP, stopP, loopIndexID));//, read,wrote));
+            	            			index, startP, stopP, loopIndexID, true));//, read,wrote));
             }
 
             while (!loop_threads.empty()){
