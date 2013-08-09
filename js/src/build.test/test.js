@@ -1,4 +1,4 @@
-var N = 2;
+var N = 10000;
 var i;
 var out = new Array();
 
@@ -7,6 +7,7 @@ var out = new Array();
 
 for (i = 0; i < N; i++)
 {
+	out[i] = out[i];
 	out[i] = i+1;
 }
 
