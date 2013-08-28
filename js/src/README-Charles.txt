@@ -8,15 +8,15 @@ of how the interpreter works.  This knowledge is very, very incomplete.
 
 All the important changes are in the following files:
 
-* cmps530.h
+* cmps530\js\src\cmps530.h
     * Contains some data structure definitions and helper functions.
-* cmps530-threading.cpp
+* cmps530\js\src\cmps530-threading.cpp
     * Contains the interpret function executed in threads and some 
     associated data structures functions.
-* jsinterp.cpp
+* cmps530\js\src\jsinterp.cpp
     * The mozilla file containing the javascript interpreter.  The function 
       of interest is Interpret.
-* interp-defines.cpp
+* cmps530\js\src\interp-defines.cpp
     * I moved some defines that used to be in jsinterp.cpp here for
       convenience.
 
