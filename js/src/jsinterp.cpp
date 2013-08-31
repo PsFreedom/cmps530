@@ -2358,7 +2358,7 @@ BEGIN_CASE(JSOP_SETGNAME)
 BEGIN_CASE(JSOP_SETNAME)
 {
 #ifdef TRACEIT
-    printf("TRACE JSOP_{SETGNAME,SETNAME}\n");
+    printf("TRACE: JSOP_{SETGNAME,SETNAME}\n");
 #endif
     RootedObject &scope = rootObject0;
     scope = &regs.sp[-2].toObject();
