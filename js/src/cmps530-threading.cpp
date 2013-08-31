@@ -277,6 +277,11 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 		#ifdef LOOP_PARALLEL
 		    }
 
+
+		//IF want to skip actual read but put 0 in the stack instead
+		//PUSH_COPY_SKIP_CHECK(Int32Value(0));
+
+
 		    //Update the read mask
 		    //WORKING
 
@@ -515,7 +520,8 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 		       MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-2]);
 		       if (!GetElementOperation(cx, op, lval, rval, res)){
 
-		    	   printf("JSOP_{GETELEM, CALLELEM}.GetElementOperation()\n");
+		    	   printf("Thread[%d] JSOP_{GETELEM, CALLELEM}"
+                                  ".GetElementOperation()", id);
 		           goto error;
 		       }
 		       TypeScript::Monitor(cx, *script, regs.pc, res);

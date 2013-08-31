@@ -1317,11 +1317,12 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
             int *index = (int *)malloc(sizeof(int) * indexList.size());
             memcpy(index, &indexList[0], sizeof(int) * indexList.size());
 
+            printf("Start run testThread\n");
             std::thread testThread = std::thread(ThreadInterpret,
                                     i, loopdata.loophead, cx, &regs, offset,
                         			original_pc, loopdata.update, &rootValue0, &rootValue1,
                         			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-                        			index, startP, nloop, loopIndexID, false);//, read,wrote));
+                        			index, startP, nloop, loopIndexID, true);//, read,wrote));
 
              testThread.join();
              printf("End of the test thread\n");
