@@ -540,6 +540,17 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 		    PUSH_COPY(rref);
 		}
 		END_CASE(JSOP_DUP)
+		
+		BEGIN_CASE(JSOP_SUB)
+		{
+			RootedValue &lval = rootValue0, &rval = rootValue1;
+			lval = regs.sp[-2];
+			rval = regs.sp[-1];
+			if (!SubOperation(cx, lval, rval, &regs.sp[-2]))
+				goto error;
+			regs.sp--;
+		}
+		END_CASE(JSOP_SUB)
 
 		BEGIN_CASE(JSOP_UINT16)
 			PUSH_INT32((int32_t) GET_UINT16(regs.pc));
