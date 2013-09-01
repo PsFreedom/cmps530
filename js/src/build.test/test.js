@@ -7,8 +7,8 @@ var out = new Array();
 
 for (i = 0; i < N; i++)
 {
-	//out[i] = out[i];
-	out[i] = i+1;
+	out[i] = i+127;
+	//out[i] = i+1;
 }
 
 //var end = new Date().getTime() - start;

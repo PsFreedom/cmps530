@@ -20,7 +20,7 @@
 #include "cmps530.h"
 
 /* Manual tracing using individual printfs */
-#define TRACEIT 1
+//#define TRACEIT 1
 /* Trace using the single printf on BEGIN_CASE*/ 
 //#define TRACEAUTO 1
 /* Trace the PC as it executes */
@@ -1297,6 +1297,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
         if (inloop && offset == loopdata.exit ){
             std::cout << "\nAfter loop, start spawning threads\n";
+			fflush(stdout);
             inloop = false;
 
             /* Remove one last index exclusively */

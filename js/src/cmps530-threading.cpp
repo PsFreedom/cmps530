@@ -541,6 +541,10 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 		}
 		END_CASE(JSOP_DUP)
 
+		BEGIN_CASE(JSOP_UINT16)
+			PUSH_INT32((int32_t) GET_UINT16(regs.pc));
+		END_CASE(JSOP_UINT16)
+		
 		default:
 		{
 		  std::cout << "Unimplemented opcode: " << op << std::endl;
