@@ -93,7 +93,7 @@ DivOperationNoRooted(JSContext *cx, Value lhs, Value rhs, Value *res)
 JS_NEVER_INLINE void
 ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs * orig_regs, int offset, jsbytecode *original_pc, jsbytecode *stop_pc, 
         RootedValue *rootValue0, RootedValue *rootValue1, RootedObject *rootObject0, RootedObject *rootObject1, RootedObject *rootObject2, RootedId *rootId0,
-        Rooted<JSScript*> * script, int* index, int startP, int stopP, jsid loopIndexID, bool enableWrite)//,
+        Rooted<JSScript*> * script, int* index, int startP, int stopP, jsid loopIndexID, bool enableWrite, bool isPreFetch)//,
 {
     //JSContext *cx = (JSContext *)malloc(sizeof(JSContext));
     //memcpy(cx, original_cx, sizeof(JSContext));// don't forget the free(cx);
@@ -215,19 +215,19 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 				ADD_EMPTY_CASE(JSOP_CONDSWITCH)
 				ADD_EMPTY_CASE(JSOP_TRY)
 			 	  #ifdef TRACEIT
-					printf("TRACE(thread): EMPTY\n");
+					printf("TRACE(thread %d): EMPTY\n", id);
 				  #endif
 				END_EMPTY_CASES
 
 				BEGIN_CASE2(JSOP_LOOPHEAD)
 				  #ifdef TRACEIT
-					printf("TRACE(thread): JSOP_LOOPHEAD\n");
+					printf("TRACE(thread %d): JSOP_LOOPHEAD\n", id);
 				  #endif
 				END_EMPTY_CASES
 				
 				BEGIN_CASE2(JSOP_LOOPENTRY)
 				  #ifdef TRACEIT
-					printf("TRACE(thread): JSOP_LOOPENTRY\n");
+					printf("TRACE(thread %d): JSOP_LOOPENTRY\n", id);
 				  #endif
 				END_EMPTY_CASES
 
@@ -249,14 +249,14 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 
 				BEGIN_CASE2(JSOP_UNDEFINED)
 				  #ifdef TRACEIT
-					printf("TRACE(thread): JSOP_UNDEFINED\n");
+					printf("TRACE(thread %d): JSOP_UNDEFINED\n", id);
 				  #endif
 					regs.sp++->setUndefined();
 				END_CASE(JSOP_UNDEFINED)
 
 				BEGIN_CASE2(JSOP_BINDGNAME)
 				  #ifdef TRACEIT
-						printf("TRACE(thread): JSOP_BINDGNAME\n");
+						printf("TRACE(thread %d): JSOP_BINDGNAME\n", id);
 				  #endif
 					/* CAL Determine which name belongs to which global variable (???)
 					 * A global object or THE global object? */
@@ -270,7 +270,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 				BEGIN_CASE2(JSOP_CALLNAME)
 				{
 				  #ifdef TRACEIT
-					printf("TRACE(thread): JSOP_{GETGNAME,CALLGNAME,NAME,CALLNAME}\n");
+					printf("TRACE(thread %d): JSOP_{GETGNAME,CALLGNAME,NAME,CALLNAME}\n", id);
 				  #endif
 					/* CAL
 					for (std::map<jsbytecode*, int>::iterator it = visited_pc.begin(); it != visited_pc.end(); it++){
@@ -346,21 +346,28 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 
 				BEGIN_CASE2(JSOP_ONE)
 				#ifdef TRACEIT
-					printf("TRACE(thread): JSOP_ONE\n");
+					printf("TRACE(thread %d): JSOP_ONE\n", id);
 				#endif
 					regs.sp++->setInt32(1);
 				END_CASE(JSOP_ONE)
 
 				BEGIN_CASE2(JSOP_ADD)
 				{
-				#ifdef TRACEIT
-					printf("TRACE(thread): JSOP_ADD\n");
-				#endif
-					Value lval = regs.sp[-2];
-					Value rval = regs.sp[-1];
-					if (!AddOperation(cx, lval, rval, &regs.sp[-2])) {
-						printf("[%d][ERR] JSOP_ADD.AddOperation()", id);
-						goto error;
+					if(!isPreFetch){
+					  #ifdef TRACEIT
+						printf("TRACE(thread %d): JSOP_ADD\n", id);
+					  #endif
+						Value lval = regs.sp[-2];
+						Value rval = regs.sp[-1];
+						if (!AddOperation(cx, lval, rval, &regs.sp[-2])) {
+							printf("[%d][ERR] JSOP_ADD.AddOperation()", id);
+							goto error;
+						}
+					}
+					else{
+					  #ifdef TRACEIT
+						printf("TRACE(thread %d): Prefetch JSOP_ADD Skipp\n", id);
+					  #endif
 					}
 					regs.sp--;
 				}
@@ -371,11 +378,22 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 					//RootedValue &lval = *rootValue0, &rval = *rootValue1;
 					//lval = regs.sp[-2];
 					//rval = regs.sp[-1];
-					Value lval = regs.sp[-2];
-					Value rval = regs.sp[-1];
+					
+					if(!isPreFetch){
+					  #ifdef TRACEIT
+						printf("TRACE(thread %d): JSOP_SUB\n", id);
+					  #endif
+						Value lval = regs.sp[-2];
+						Value rval = regs.sp[-1];
 						if (!SubOperationNoRooted(cx, lval, rval, &regs.sp[-2]))
 							goto error;
-						regs.sp--;
+					}
+					else{
+					  #ifdef TRACEIT
+						printf("TRACE(thread %d): Prefetch JSOP_SUB Skipp\n", id);
+					  #endif
+					}
+					regs.sp--;
 				}
 				END_CASE(JSOP_SUB)
 
@@ -385,12 +403,20 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 					//RootedValue &rval = *rootValue1;
 					//lval = regs.sp[-2];
 					//rval = regs.sp[-1];
-					Value lval = regs.sp[-2];
-					Value rval = regs.sp[-1];
-					if (!DivOperationNoRooted(cx, lval, rval, &regs.sp[-2])) {
-						printf("[%d][ERR] JSOP_DIV.DivOperationNoRooted()", id);
-						goto error;
+					
+					if(!isPreFetch){
+						Value lval = regs.sp[-2];
+						Value rval = regs.sp[-1];
+						if (!DivOperationNoRooted(cx, lval, rval, &regs.sp[-2])) {
+							printf("[%d][ERR] JSOP_DIV.DivOperationNoRooted()", id);
+							goto error;
+						}
 					}
+					else{
+					  #ifdef TRACEIT
+						printf("TRACE(thread %d): Prefetch JSOP_DIV Skipp\n", id);
+					  #endif
+					}					
 					regs.sp--;
 				}
 				END_CASE(JSOP_DIV)
@@ -400,12 +426,20 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 					//RootedValue &lval = *rootValue0, &rval = *rootValue1;
 					//lval = regs.sp[-2];
 					//rval = regs.sp[-1];
-					Value lval = regs.sp[-2];
-					Value rval = regs.sp[-1];
-					if (!MulOperationNoRooted(cx, lval, rval, &regs.sp[-2])) {
-						printf("[%d][ERR] JSOP_MUL.MulOperationNoRooted()", id);
-						goto error;
+					
+					if(!isPreFetch){
+						Value lval = regs.sp[-2];
+						Value rval = regs.sp[-1];
+						if (!MulOperationNoRooted(cx, lval, rval, &regs.sp[-2])) {
+							printf("[%d][ERR] JSOP_MUL.MulOperationNoRooted()", id);
+							goto error;
+						}
 					}
+					else{
+					  #ifdef TRACEIT
+						printf("TRACE(thread %d): Prefetch JSOP_MUL Skipp\n", id);
+					  #endif
+					}					
 					regs.sp--;
 				}
 				END_CASE(JSOP_MUL)
@@ -415,7 +449,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 				{
 					if (enableWrite) {
 					  #ifdef TRACEIT
-						printf("TRACE(thread): JSOP_{SETGNAME,SETNAME}\n");
+						printf("TRACE(thread %d): JSOP_{SETGNAME,SETNAME}\n", id);
 					  #endif
 						RootedObject &scope = *rootObject0;
 						scope = &regs.sp[-2].toObject();
@@ -441,7 +475,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 
 				BEGIN_CASE2(JSOP_POP)
 				#ifdef TRACEIT
-					printf("TRACE(thread): JSOP_POP\n");
+					printf("TRACE(thread %d): JSOP_POP\n", id);
 				#endif
 					regs.sp--;
 				END_CASE(JSOP_POP)
@@ -450,7 +484,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 				{
 					if (enableWrite) {
 					  #ifdef TRACEIT
-						printf("TRACE(thread): JSOP_SETELEM\n");
+						printf("TRACE(thread %d): JSOP_SETELEM\n", id);
 					  #endif
 
 					  #ifdef DEBUG_LOOP_PARALLEL
@@ -540,7 +574,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 
 				BEGIN_CASE2(JSOP_ZERO)
 				#ifdef TRACEIT
-					printf("TRACE(thread): JSOP_ZERO\n");
+					printf("TRACE(thread %d): JSOP_ZERO\n", id);
 				#endif
 					PUSH_INT32(0);
 				END_CASE(JSOP_ZERO)
@@ -566,7 +600,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 					// TypeScript::Monitor(cx, script, regs.pc, res);
 					regs.sp--;*/
 				  #ifdef TRACEIT
-					printf("TRACE(thread): JSOP_{GETELEM,CALLELEM}\n");
+					printf("TRACE(thread %d): JSOP_{GETELEM,CALLELEM}\n", id);
 				  #endif
 					MutableHandleValue lval = MutableHandleValue::fromMarkedLocation(&regs.sp[-2]);
 					   HandleValue rval = HandleValue::fromMarkedLocation(&regs.sp[-1]);
@@ -587,7 +621,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 				BEGIN_CASE2(JSOP_DUP)
 				{
 				#ifdef TRACEIT
-					printf("TRACE(thread): JSOP_DUP\n");
+					printf("TRACE(thread %d): JSOP_DUP\n", id);
 				#endif
 					//JS_ASSERT(regs.stackDepth() >= 1);
 					const Value &rref = regs.sp[-1];

@@ -20,7 +20,7 @@
 #include "cmps530.h"
 
 /* Manual tracing using individual printfs */
-//#define TRACEIT 1
+#define TRACEIT 1
 /* Trace using the single printf on BEGIN_CASE*/ 
 //#define TRACEAUTO 1
 /* Trace the PC as it executes */
@@ -1323,7 +1323,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                                     i, loopdata.loophead, cx, &regs, offset,
                         			original_pc, loopdata.update, &rootValue0, &rootValue1,
                         			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-                        			index, startP, nloop, loopIndexID, true);//, read,wrote));
+                        			index, startP, nloop, loopIndexID, true, true);//, read,wrote));
 
             testThread.join();
             printf("End of the test thread\n");
@@ -1338,7 +1338,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                         i, loopdata.loophead, cx, &regs, offset,
             			original_pc, loopdata.update, &rootValue0, &rootValue1,
             			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-            			index, startP, stopP, loopIndexID, true));//, read,wrote));
+            			index, startP, stopP, loopIndexID, true, false));//, read,wrote));
 
 			  #ifdef DEBUG_LOOP_PARALLEL
             	printf("[%d] spawn thread, startP=%d, stopP=%d\n", i, startP, stopP);
@@ -1352,7 +1352,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                                         i, loopdata.loophead, cx, &regs, offset,
             	            			original_pc, loopdata.update, &rootValue0, &rootValue1,
             	            			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-            	            			index, startP, stopP, loopIndexID, true));//, read,wrote));
+            	            			index, startP, stopP, loopIndexID, true, false));//, read,wrote));
             }
 
             while (!loop_threads.empty()){
