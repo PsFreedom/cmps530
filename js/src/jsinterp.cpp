@@ -1325,8 +1325,8 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                         			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
                         			index, startP, nloop, loopIndexID, true);//, read,wrote));
 
-             testThread.join();
-             printf("End of the test thread\n");
+            testThread.join();
+            printf("End of the test thread\n");
 
             for (i = 0; i < nthread; i++) {
 

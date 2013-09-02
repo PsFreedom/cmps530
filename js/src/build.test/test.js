@@ -7,7 +7,7 @@ var out = new Array();
 
 for (i = 0; i < N; i++)
 {
-	out[i] = i-1;
+	out[i] = i/3;
 	//out[i] = i+1;
 }
 
