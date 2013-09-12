@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 
+
 // Uncomment to turn on debugging output for this file.
 //#define DOUT2
 //#define DEBUG_LOOP_PARALLEL
@@ -314,24 +315,17 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 				#ifdef LOOP_PARALLEL
 					}
 
-
 				//IF want to skip actual read but put 0 in the stack instead
 				//PUSH_COPY_SKIP_CHECK(Int32Value(0));
 
-
 					//Update the read mask
 					//WORKING
-
-
+					
 				  #ifdef DEBUG_LOOP_PARALLEL
 					printf("#####################[%d] sp = %p, pc=%p\n", id, (void*)regs.sp, (void*)regs.pc);
 				  #endif //DEBUG_LOOP_PARALLEL
 
 				#endif /* LOOP_PARALLEL */
-
-
-
-
 
 					/* Charles version
 				//    RootedPropertyName name(cx, (*script)->getName(regs.pc));
@@ -502,7 +496,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 						FETCH_ELEMENT_ID(obj, -2, rid);
 						Value &value = regs.sp[-1];
 						if (!SetObjectElementOperation(cx, obj, rid, value, (*script)->strictModeCode)) {
-							printf("[%d][ERR] JSOP_SETELEM.SetObjectElementOperation()", id);
+							printf("[%d][ERR] JSOP_SETELEM.SetObjectElementOperationThread()", id);
 							goto error;
 						}
 						regs.sp[-3] = value;
@@ -552,7 +546,7 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 
 
 
-					//if (!SetObjectElementOperationThread(cx, obj, rid, value, (*script)->strictModeCode))
+					//if (!SetObjectElementOperationThreadThread(cx, obj, rid, value, (*script)->strictModeCode))
 					//    goto error;
 
 					wrote.insert(idval_.data.asPtr);

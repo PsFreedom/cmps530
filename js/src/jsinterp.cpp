@@ -18,9 +18,10 @@
 #include <queue>
 #include <set>
 #include "cmps530.h"
+#include <time.h> 
 
 /* Manual tracing using individual printfs */
-#define TRACEIT 1
+//#define TRACEIT 1
 /* Trace using the single printf on BEGIN_CASE*/ 
 //#define TRACEAUTO 1
 /* Trace the PC as it executes */
@@ -1098,13 +1099,15 @@ TypeCheckNextBytecode(JSContext *cx, JSScript *script, unsigned n, const FrameRe
 #define dprinf(fmt, ...) 0
 #endif
 
-
+time_t curTime;
 JS_NEVER_INLINE bool
 js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 {
 
 #include "interp-defines.h"
 
+	time(&curTime);
+	printf ("Start main Interpret time : %s", ctime (&curTime));
 
     int offset;
     Loop loopdata;
@@ -1166,8 +1169,12 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
     SET_SCRIPT(regs.fp()->script());
 
     /* CAL Create script source notes */
+	time(&curTime);
+	printf ("Start ScriptNotes : %s", ctime (&curTime));
     ScriptNotes notes(cx, script, original_pc);
-    notes.print();
+    //notes.print();
+	time(&curTime);
+	printf ("End ScriptNotes : %s", ctime (&curTime));
 
     /*
      * Pool of rooters for use in this interpreter frame. References to these
@@ -1296,7 +1303,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 #ifdef LOOP_PARALLEL	//naomi
 
         if (inloop && offset == loopdata.exit ){
-            std::cout << "\nAfter loop, start spawning threads\n";
+            //std::cout << "\nAfter loop, start spawning threads\n";
 			fflush(stdout);
             inloop = false;
 
@@ -1318,16 +1325,23 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
             int *index = (int *)malloc(sizeof(int) * indexList.size());
             memcpy(index, &indexList[0], sizeof(int) * indexList.size());
 
-            printf("Start run testThread\n");
+			
+            //printf("Start run testThread\n");
+			
+			
+			time(&curTime);
+			printf ("Start Prefetch & End of IndexList : %s", ctime (&curTime));
             std::thread testThread = std::thread(ThreadInterpret,
                                     i, loopdata.loophead, cx, &regs, offset,
                         			original_pc, loopdata.update, &rootValue0, &rootValue1,
                         			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
                         			index, startP, nloop, loopIndexID, true, true);//, read,wrote));
-
             testThread.join();
-            printf("End of the test thread\n");
-
+			time(&curTime);
+			printf ("End of prefetch & Start Thread : %s", ctime (&curTime));
+			
+            //printf("End of the test thread\n");
+			
             for (i = 0; i < nthread; i++) {
 
             	startP = i * NUM_LOOP_PER_THREAD;
@@ -1362,7 +1376,9 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                 loop_threads.front().join();
                 loop_threads.pop();
             }
-
+			time(&curTime);
+			printf ("Complete all thread : %s", ctime (&curTime));
+			
             free(index);
         }
 #endif //LOOP_PARALLEL
@@ -3953,6 +3969,8 @@ END_CASE(JSOP_ARRAYPUSH)
 #if !JS_THREADED_INTERP
         } /* switch (op) */
     } /* for (;;) */
+	time(&curTime);
+	printf ("End : %s", ctime (&curTime));
 #endif /* !JS_THREADED_INTERP */
 
   error:
@@ -4129,6 +4147,8 @@ END_CASE(JSOP_ARRAYPUSH)
   			getGNameMap.clear();
   		    loopCount = 0;
   		    indexList.clear();
+			time(&curTime);
+			printf ("Start IndexList : %s", ctime (&curTime));
 
   		    //counter++;
 
@@ -4152,8 +4172,6 @@ END_CASE(JSOP_ARRAYPUSH)
   		} else {
   			fprintf(stderr, "Detect loopentry but loop doesn't exist!?");
   			exit(-1);
-
-  			//goto advance_pc_by_one;
   		}
   	} else  {
   		loopCount++;
@@ -4165,7 +4183,6 @@ END_CASE(JSOP_ARRAYPUSH)
   		state = ENTRY_STATE;
   		goto advance_pc_by_one;
   	}
-
 }
 
 
