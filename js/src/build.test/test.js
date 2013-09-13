@@ -1,11 +1,11 @@
-var N = 10000;
+var N = 100000;
 var i;
 var out = new Array();
 
 
 //var start = new Date().getTime();
 
-for (i = 0; i < N; i++)
+for (i = 0; i < N; i+=5)
 {
 	out[i] = ((i+i+2)*2)/3;
 	//out[i] = i+1;

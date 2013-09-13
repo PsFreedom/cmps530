@@ -106,6 +106,8 @@ using namespace js::types;
 #ifdef LOOP_PARALLEL
 enum LoopState {HEAD_STATE, ENTRY_STATE, UPDATE_STATE}; /* adding 3 states for loophead,
 		//sven											 * loopentry and update			*/
+		
+enum LoopCondition {EQ, NE, LT, LE, GT, GE};
 #endif
 
 
@@ -1116,8 +1118,10 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
     std::map<std::thread::id,std::set<void *>> read;
     std::map<std::thread::id,std::set<void *>> wrote;
     LoopState state;
+	LoopCondition LoopCond;
     std::map<jsid, int> getGNameMap;
     int loopCount = 0;
+	int indexDiffOld, indexDiffNew, IndexTarget;
     std::vector<int> indexList;
     jsid loopIndexID;
 
@@ -1929,11 +1933,21 @@ END_CASE(JSOP_BITAND)
     JS_END_MACRO
 
 BEGIN_CASE(JSOP_EQ)
-    EQUALITY_OP(==);
+{
+    EQUALITY_OP(==);	
+	#ifdef DEBUG_LOOP_PARALLEL
+  		LoopCond = EQ;
+	#endif
+}
 END_CASE(JSOP_EQ)
 
 BEGIN_CASE(JSOP_NE)
+{
     EQUALITY_OP(!=);
+	#ifdef DEBUG_LOOP_PARALLEL
+  		LoopCond = NE;
+	#endif
+}
 END_CASE(JSOP_NE)
 
 #undef EQUALITY_OP
@@ -1987,6 +2001,9 @@ BEGIN_CASE(JSOP_LT)
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
+	#ifdef DEBUG_LOOP_PARALLEL
+  		LoopCond = LT;
+	#endif
     if (!LessThanOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2000,6 +2017,9 @@ BEGIN_CASE(JSOP_LE)
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
+	#ifdef DEBUG_LOOP_PARALLEL
+  		LoopCond = LE;
+	#endif
     if (!LessThanOrEqualOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2013,6 +2033,9 @@ BEGIN_CASE(JSOP_GT)
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
+	#ifdef DEBUG_LOOP_PARALLEL
+  		LoopCond = GT;
+	#endif
     if (!GreaterThanOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2026,6 +2049,9 @@ BEGIN_CASE(JSOP_GE)
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
+	#ifdef DEBUG_LOOP_PARALLEL
+  		LoopCond = GE;
+	#endif
     if (!GreaterThanOrEqualOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2639,11 +2665,17 @@ BEGIN_CASE(JSOP_CALLNAME)
     		int oldValue = getGNameMap[nameId];
 
     		if (intValue != oldValue) {
+				
     			//found loop index !!!
     			loopIndexID = nameId;
-
+				
+				
     			if (loopCount == 1) {
     				indexList.push_back(oldValue);
+					indexDiffOld = intValue - oldValue;
+    			}
+				if (loopCount == 2) {
+					indexDiffNew = intValue - oldValue;
     			}
     			indexList.push_back(intValue);
 			  #ifdef DEBUG_LOOP_PARALLEL
@@ -2654,6 +2686,10 @@ BEGIN_CASE(JSOP_CALLNAME)
     			printf("\n");
 			  #endif
     		}
+			else if(intValue == oldValue){
+				IndexTarget = intValue;
+			}
+			getGNameMap[nameId] = intValue;
     	} else if (elemCount == 0) {
     		getGNameMap[nameId] = intValue;
     	} else {
@@ -4146,6 +4182,8 @@ END_CASE(JSOP_ARRAYPUSH)
   			loopdata = notes.getLoop(regs.pc);
   			getGNameMap.clear();
   		    loopCount = 0;
+			indexDiffOld = 0;
+			indexDiffNew = 0;
   		    indexList.clear();
 			time(&curTime);
 			printf ("Start IndexList : %s", ctime (&curTime));
@@ -4175,7 +4213,13 @@ END_CASE(JSOP_ARRAYPUSH)
   		}
   	} else  {
   		loopCount++;
-
+		
+		if (loopCount == 3 && indexDiffOld == indexDiffNew) {
+    		std::cout << "Loop round : " << loopCount << ", Diff = " << indexDiffNew << " , " << indexDiffOld << " Target : " << IndexTarget <<"\n";
+		}
+		else if (loopCount == 3){
+			std::cout << "Not support This loop";
+		}
 	  #ifdef DEBUG_LOOP_PARALLEL
   		printf("[DLP] update loopCount = %d\n", loopCount);
 	  #endif /* DEBUG_LOOP_PARALLEL */
