@@ -1118,12 +1118,13 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
     std::map<std::thread::id,std::set<void *>> read;
     std::map<std::thread::id,std::set<void *>> wrote;
     LoopState state;
-	LoopCondition LoopCond;
-    std::map<jsid, int> getGNameMap;
+    LoopCondition LoopCond;
+	std::map<jsid, int> getGNameMap;
     int loopCount = 0;
-	int indexDiffOld, indexDiffNew, IndexTarget;
     std::vector<int> indexList;
     jsid loopIndexID;
+	int IndexTarget;
+	
 
     std::map<jsbytecode*, int> visited_pc;
     /*
@@ -1935,7 +1936,7 @@ END_CASE(JSOP_BITAND)
 BEGIN_CASE(JSOP_EQ)
 {
     EQUALITY_OP(==);	
-	#ifdef DEBUG_LOOP_PARALLEL
+	#ifdef LOOP_PARALLEL
   		LoopCond = EQ;
 	#endif
 }
@@ -1944,7 +1945,7 @@ END_CASE(JSOP_EQ)
 BEGIN_CASE(JSOP_NE)
 {
     EQUALITY_OP(!=);
-	#ifdef DEBUG_LOOP_PARALLEL
+	#ifdef LOOP_PARALLEL
   		LoopCond = NE;
 	#endif
 }
@@ -1995,15 +1996,15 @@ END_CASE(JSOP_CASE)
 
 BEGIN_CASE(JSOP_LT)
 {
-#ifdef TRACEIT
-    printf("TRACE: JSOP_LT\n");
-#endif
+	#ifdef TRACEIT
+		printf("TRACE: JSOP_LT\n");
+	#endif
+	#ifdef LOOP_PARALLEL
+  		LoopCond = LT;
+	#endif
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
-	#ifdef DEBUG_LOOP_PARALLEL
-  		LoopCond = LT;
-	#endif
     if (!LessThanOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2014,12 +2015,12 @@ END_CASE(JSOP_LT)
 
 BEGIN_CASE(JSOP_LE)
 {
+	#ifdef LOOP_PARALLEL
+  		LoopCond = LE;
+	#endif
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
-	#ifdef DEBUG_LOOP_PARALLEL
-  		LoopCond = LE;
-	#endif
     if (!LessThanOrEqualOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2030,12 +2031,12 @@ END_CASE(JSOP_LE)
 
 BEGIN_CASE(JSOP_GT)
 {
+	#ifdef LOOP_PARALLEL
+  		LoopCond = GT;
+	#endif
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
-	#ifdef DEBUG_LOOP_PARALLEL
-  		LoopCond = GT;
-	#endif
     if (!GreaterThanOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2046,12 +2047,12 @@ END_CASE(JSOP_GT)
 
 BEGIN_CASE(JSOP_GE)
 {
+	#ifdef LOOP_PARALLEL
+  		LoopCond = GE;
+	#endif
     bool cond;
     const Value &lref = regs.sp[-2];
     const Value &rref = regs.sp[-1];
-	#ifdef DEBUG_LOOP_PARALLEL
-  		LoopCond = GE;
-	#endif
     if (!GreaterThanOrEqualOperation(cx, lref, rref, &cond))
         goto error;
     TRY_BRANCH_AFTER_COND(cond, 2);
@@ -2665,17 +2666,11 @@ BEGIN_CASE(JSOP_CALLNAME)
     		int oldValue = getGNameMap[nameId];
 
     		if (intValue != oldValue) {
-				
     			//found loop index !!!
     			loopIndexID = nameId;
-				
-				
+
     			if (loopCount == 1) {
     				indexList.push_back(oldValue);
-					indexDiffOld = intValue - oldValue;
-    			}
-				if (loopCount == 2) {
-					indexDiffNew = intValue - oldValue;
     			}
     			indexList.push_back(intValue);
 			  #ifdef DEBUG_LOOP_PARALLEL
@@ -2686,10 +2681,9 @@ BEGIN_CASE(JSOP_CALLNAME)
     			printf("\n");
 			  #endif
     		}
-			else if(intValue == oldValue){
+			else{
 				IndexTarget = intValue;
 			}
-			getGNameMap[nameId] = intValue;
     	} else if (elemCount == 0) {
     		getGNameMap[nameId] = intValue;
     	} else {
@@ -4181,13 +4175,11 @@ END_CASE(JSOP_ARRAYPUSH)
   			inloop = true;
   			loopdata = notes.getLoop(regs.pc);
   			getGNameMap.clear();
-  		    loopCount = 0;
-			indexDiffOld = 0;
-			indexDiffNew = 0;
   		    indexList.clear();
+			LoopCond = 0;
+			std::cout << "LoopCond : "<< LoopCond <<"\n";
 			time(&curTime);
 			printf ("Start IndexList : %s", ctime (&curTime));
-
   		    //counter++;
 
   		        /*dprintf("Creating thread %d\n", counter);
@@ -4214,12 +4206,13 @@ END_CASE(JSOP_ARRAYPUSH)
   	} else  {
   		loopCount++;
 		
-		if (loopCount == 3 && indexDiffOld == indexDiffNew) {
-    		std::cout << "Loop round : " << loopCount << ", Diff = " << indexDiffNew << " , " << indexDiffOld << " Target : " << IndexTarget <<"\n";
+		if(loopCount == 3){
+			printf("LoopCount = %d\n",loopCount);
+			std::cout << "LoopCond : "<< LoopCond <<"\n";
+			printf("Target = %d\n",IndexTarget);
+			printf("IndexList : %d %d %d\n",indexList[0],indexList[1],indexList[2]);
 		}
-		else if (loopCount == 3){
-			std::cout << "Not support This loop";
-		}
+
 	  #ifdef DEBUG_LOOP_PARALLEL
   		printf("[DLP] update loopCount = %d\n", loopCount);
 	  #endif /* DEBUG_LOOP_PARALLEL */
