@@ -94,7 +94,7 @@ DivOperationNoRooted(JSContext *cx, Value lhs, Value rhs, Value *res)
 JS_NEVER_INLINE void
 ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs * orig_regs, int offset, jsbytecode *original_pc, jsbytecode *stop_pc, 
         RootedValue *rootValue0, RootedValue *rootValue1, RootedObject *rootObject0, RootedObject *rootObject1, RootedObject *rootObject2, RootedId *rootId0,
-        Rooted<JSScript*> * script, int* index, int startP, int stopP, jsid loopIndexID, bool enableWrite, bool isPreFetch)//,
+        Rooted<JSScript*> * script, int IndexDiff, int startP, int stopP, jsid loopIndexID, bool enableWrite, bool isPreFetch)//,
 {
     //JSContext *cx = (JSContext *)malloc(sizeof(JSContext));
     //memcpy(cx, original_cx, sizeof(JSContext));// don't forget the free(cx);
@@ -120,10 +120,10 @@ ThreadInterpret(int id, jsbytecode* start_pc, JSContext *original_cx, FrameRegs 
 		}
 	*/
 
-	for(int threadIndex = startP; threadIndex < stopP; threadIndex++) {
+	for(int threadIndex = startP; threadIndex < stopP; threadIndex += IndexDiff) {
 
-		int curIndex = index[threadIndex];
-
+		int curIndex = threadIndex;
+		//printf("Pum %d curIndex : %d\n",id,curIndex);
 		//FrameRegs regs = *orig_regs;
 		regs.pc = start_pc;
 		// Copy stack.

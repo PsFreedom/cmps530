@@ -18,7 +18,8 @@
 #include <queue>
 #include <set>
 #include "cmps530.h"
-#include <time.h> 
+#include <time.h>
+#include <math.h> 
 
 /* Manual tracing using individual printfs */
 //#define TRACEIT 1
@@ -30,7 +31,7 @@
 #define LOOP_PARALLEL 1
 
 #ifdef LOOP_PARALLEL
-#define NUM_LOOP_PER_THREAD 2500
+#define NUM_LOOP_PER_THREAD 25000000
 #endif //LOOP_PARALLEL
 
 
@@ -1301,38 +1302,38 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
         offset = regs.pc - original_pc ;
         op = (JSOp) *regs.pc; // Get the opcode
 
-        /* CAL Keep track of visited pc's */
+        // CAL Keep track of visited pc's //
       do_op:
         //std::cout << "PC:" << offset << " Opcode: " << op << std::endl;
         // GetInstructionType(&notes, offset);
-#ifdef LOOP_PARALLEL	//naomi
-
-        if (inloop && offset == loopdata.exit ){
-            //std::cout << "\nAfter loop, start spawning threads\n";
-			fflush(stdout);
-            inloop = false;
-
-            /* Remove one last index exclusively */
-            indexList.pop_back();
-
-		  #ifdef DEBUG_LOOP_PARALLEL
+		
+	#ifdef LOOP_PARALLEL	//naomi
+        if (inloop && loopCount == 3 ){
+		
+			inloop = false;
+		//	printf("LoopCount = %d\n",loopCount);
+		//	std::cout << "LoopCond : "<< LoopCond <<"\n";
+		//	printf("Target = %d\n",IndexTarget);
+		//	printf("IndexList : %d %d %d\n",indexList[0],indexList[1],indexList[2]);	
+		//	std::cout << "loopdata.exit : "<< loopdata.exit <<"\n";
+			
+		
+        #ifdef DEBUG_LOOP_PARALLEL
             printf("index = ");
             for(unsigned int i=0; i<indexList.size(); i++) {
             	printf("%d ", index[i]);
             }
             printf("\n");
-		  #endif /* DEBUG_LOOP_PARALLEL */
+        #endif // DEBUG_LOOP_PARALLEL //
 
-            int nloop = indexList.size();
-            int nthread =  nloop/NUM_LOOP_PER_THREAD;
-            int startP = 0, stopP = 0, i = 0;
-
-            int *index = (int *)malloc(sizeof(int) * indexList.size());
-            memcpy(index, &indexList[0], sizeof(int) * indexList.size());
-
-			
-            //printf("Start run testThread\n");
-			
+        
+            int IndexDiff = indexList[1] - indexList[0];
+            int nloop = (IndexTarget - indexList[0])/IndexDiff;
+            int nthread = nloop/NUM_LOOP_PER_THREAD;
+            int startP = indexList[0], stopP = IndexTarget, i = 0;
+        
+            //int *index = (int *)malloc(sizeof(int) * indexList.size());
+            //memcpy(index, &indexList[0], sizeof(int) * indexList.size());			
 			
 			time(&curTime);
 			printf ("Start Prefetch & End of IndexList : %s", ctime (&curTime));
@@ -1340,53 +1341,56 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
                                     i, loopdata.loophead, cx, &regs, offset,
                         			original_pc, loopdata.update, &rootValue0, &rootValue1,
                         			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-                        			index, startP, nloop, loopIndexID, true, true);//, read,wrote));
+                        			IndexDiff, startP, IndexTarget, loopIndexID, true, true);//, read,wrote));
             testThread.join();
 			time(&curTime);
 			printf ("End of prefetch & Start Thread : %s", ctime (&curTime));
 			
             //printf("End of the test thread\n");
-			
+	   		
             for (i = 0; i < nthread; i++) {
 
             	startP = i * NUM_LOOP_PER_THREAD;
             	stopP = startP + NUM_LOOP_PER_THREAD;
-            	/*dprintf("Creating thread %d\n", counter);*/
+            	//dprintf("Creating thread %d\n", counter//
 
             	loop_threads.push(std::thread(ThreadInterpret, 
                         i, loopdata.loophead, cx, &regs, offset,
             			original_pc, loopdata.update, &rootValue0, &rootValue1,
             			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-            			index, startP, stopP, loopIndexID, true, false));//, read,wrote));
+            			IndexDiff, startP, stopP, loopIndexID, true, false));//, read,wrote));
 
 			  #ifdef DEBUG_LOOP_PARALLEL
             	printf("[%d] spawn thread, startP=%d, stopP=%d\n", i, startP, stopP);
-		  	  #endif /* DEBUG_LOOP_PARALLEL */
+		  	  #endif // DEBUG_LOOP_PARALLEL 
             }
 
             if (nloop % NUM_LOOP_PER_THREAD != 0) {
             	startP = stopP;
-            	stopP = stopP + (nloop % NUM_LOOP_PER_THREAD);
+            	stopP = stopP + (IndexTarget % NUM_LOOP_PER_THREAD);
             	loop_threads.push(std::thread(ThreadInterpret, 
                                         i, loopdata.loophead, cx, &regs, offset,
             	            			original_pc, loopdata.update, &rootValue0, &rootValue1,
             	            			&rootObject0, &rootObject1, &rootObject2, &rootId0, &script,
-            	            			index, startP, stopP, loopIndexID, true, false));//, read,wrote));
+            	            			IndexDiff, startP, stopP, loopIndexID, true, false));//, read,wrote));
             }
 
             while (!loop_threads.empty()){
-#ifdef DEBUG_LOOP_PARALLEL
+		#ifdef DEBUG_LOOP_PARALLEL
             	std::cout << "Waiting on thread\n";
-#endif //DEBUG_LOOP_PARALLEL
+		#endif //DEBUG_LOOP_PARALLEL
                 loop_threads.front().join();
                 loop_threads.pop();
             }
 			time(&curTime);
 			printf ("Complete all thread : %s", ctime (&curTime));
 			
-            free(index);
+            //free(index);
+            
+	    regs.pc = original_pc + loopdata.exit;
         }
-#endif //LOOP_PARALLEL
+	#endif //LOOP_PARALLEL
+	
 
 
 #ifdef TRACKPC
@@ -4177,7 +4181,6 @@ END_CASE(JSOP_ARRAYPUSH)
   			getGNameMap.clear();
   		    indexList.clear();
 			LoopCond = 0;
-			std::cout << "LoopCond : "<< LoopCond <<"\n";
 			time(&curTime);
 			printf ("Start IndexList : %s", ctime (&curTime));
   		    //counter++;
@@ -4205,13 +4208,6 @@ END_CASE(JSOP_ARRAYPUSH)
   		}
   	} else  {
   		loopCount++;
-		
-		if(loopCount == 3){
-			printf("LoopCount = %d\n",loopCount);
-			std::cout << "LoopCond : "<< LoopCond <<"\n";
-			printf("Target = %d\n",IndexTarget);
-			printf("IndexList : %d %d %d\n",indexList[0],indexList[1],indexList[2]);
-		}
 
 	  #ifdef DEBUG_LOOP_PARALLEL
   		printf("[DLP] update loopCount = %d\n", loopCount);
